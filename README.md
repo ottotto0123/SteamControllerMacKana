@@ -1,45 +1,45 @@
 # SteamControllerMacKana
 
-macOS menu bar app that enables Japanese input (IME) when using Steam's built-in on-screen keyboard with a Steam Controller.
+Steamコントローラーのスクリーンキーボードを使って日本語入力（IME）を可能にするmacOSメニューバーアプリです。
 
-## Background
+## 背景
 
-Steam's on-screen keyboard injects key events by embedding Unicode characters directly, bypassing the macOS IME pipeline. SteamControllerMacKana intercepts these events, remaps them to proper keycodes, and re-injects them so that macOS IMEs (Kotoeri, etc.) can process them normally — enabling hiragana input, kanji conversion, and live conversion.
+SteamのスクリーンキーボードはキーイベントにあらかじめUnicode文字を埋め込んで注入するため、macOSのIMEパイプラインを素通りしてしまい、日本語入力ができません。SteamControllerMacKanaはこのイベントを横取りして正しいキーコードに変換し直すことで、Kotoeriなどのシステムで通常通り処理できるようにします。これによりひらがな入力・漢字変換・ライブ変換が使えるようになります。
 
-## Features
+## 機能
 
-- **` key**: Toggle between Japanese and English input from anywhere
-- **Menu bar icon**: Shows current mode — `日` (Japanese) or `EN` (English), dark/light mode adaptive
-- **Live conversion**: Full Kotoeri support including kanji conversion
-- **Physical keyboard safe**: Only intercepts software-injected events (Steam), not hardware keyboard input
+- **`` ` `` キー**: 日本語・英語入力をどこからでもトグル切り替え
+- **メニューバーアイコン**: 現在のモードを表示 — `日`（日本語）または `EN`（英語）、ダーク/ライトモード自動対応
+- **ライブ変換対応**: 漢字変換を含むKotoeriのフル機能が使用可能
+- **物理キーボード非干渉**: ソフトウェアが注入したイベント（Steam）のみを処理し、物理キーボードには影響しない
 
-## Requirements
+## 動作環境
 
-- macOS 13 or later
+- macOS 13 以降
 - Steam Controller
-- **Accessibility permission** required (System Settings → Privacy & Security → Accessibility)
+- **アクセシビリティ権限**が必要（システム設定 → プライバシーとセキュリティ → アクセシビリティ）
 
-## Build & Run
+## ビルド・実行
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/SteamControllerMacKana.git
+git clone https://github.com/ottotto0123/SteamControllerMacKana.git
 cd SteamControllerMacKana
 swift build -c release
 .build/release/SteamControllerMacKana
 ```
 
-## Usage
+## 使い方
 
-1. Launch SteamControllerMacKana — `EN` appears in the menu bar
-2. Open Steam and the Steam on-screen keyboard
-3. Press `` ` `` to switch to Japanese mode (`日`)
-4. Type romaji with the Steam keyboard → Kotoeri converts to hiragana/kanji
-5. Press `` ` `` again to return to English
+1. SteamControllerMacKanaを起動 — メニューバーに `EN` が表示される
+2. Steamを起動してスクリーンキーボードを開く
+3. `` ` `` キーを押して日本語モードに切り替え（`日` に変わる）
+4. Steamキーボードでローマ字入力 → Kotoeriがひらがな・漢字に変換
+5. もう一度 `` ` `` キーを押すと英語モードに戻る
 
-## How It Works
+## 仕組み
 
-Steam injects keyboard events with `virtualKey = 0` and the Unicode character pre-set, which bypasses the macOS IME. SteamControllerMacKana intercepts these events via `CGEventTap`, reads the Unicode character, maps it to the correct US keyboard virtual key code, and re-injects a clean event without the pre-set Unicode string. This allows Kotoeri to process the input through its normal pipeline.
+Steamは `virtualKey = 0` にUnicode文字を直接セットしてキーイベントを注入するため、macOSのIMEが機能しません。SteamControllerMacKanaは `CGEventTap` でこのイベントを捕捉し、Unicode文字から正しいUSキーボードのキーコードを逆引きして、Unicode文字列を持たないクリーンなイベントに差し替えて再注入します。これによりKotoeriが通常のパイプラインで入力を処理できるようになります。
 
-## License
+## ライセンス
 
 MIT
