@@ -55,8 +55,13 @@ final class KeyInterceptor {
 
         let kc = event.getIntegerValueField(.keyboardEventKeycode)
 
-        // ` キー (kc=50): 常にトグル（英語モードでも日本語モードでも）
-        if kc == 50 {
+        // ` キー判定: 物理キーボード(kc=50) または Steam注入(virtualKey=0, unicode="`")
+        // Steam は常に virtualKey=0 で注入するため unicode でも判定する必要がある
+        var uLen2 = 0
+        var uBuf2 = [UniChar](repeating: 0, count: 4)
+        event.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &uLen2, unicodeString: &uBuf2)
+        let isBacktick = kc == 50 || (uLen2 == 1 && uBuf2[0] == 96)  // 96 = '`'
+        if isBacktick {
             DispatchQueue.main.async { self.onToggle?() }
             return nil  // ` 自体は入力しない
         }
