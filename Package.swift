@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "SteamMacKana",
+    name: "SteamControllerMacKana",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "SteamMacKana",
-            path: "Sources/SteamMacKana",
+            name: "SteamControllerMacKana",
+            path: "Sources/SteamControllerMacKana",
             linkerSettings: [
                 .linkedFramework("Carbon"),
                 .linkedFramework("AppKit"),

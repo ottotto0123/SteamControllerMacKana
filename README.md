@@ -1,10 +1,10 @@
-# SteamMacKana
+# SteamControllerMacKana
 
 macOS menu bar app that enables Japanese input (IME) when using Steam's built-in on-screen keyboard with a Steam Controller.
 
 ## Background
 
-Steam's on-screen keyboard injects key events by embedding Unicode characters directly, bypassing the macOS IME pipeline. SteamMacKana intercepts these events, remaps them to proper keycodes, and re-injects them so that macOS IMEs (Kotoeri, etc.) can process them normally — enabling hiragana input, kanji conversion, and live conversion.
+Steam's on-screen keyboard injects key events by embedding Unicode characters directly, bypassing the macOS IME pipeline. SteamControllerMacKana intercepts these events, remaps them to proper keycodes, and re-injects them so that macOS IMEs (Kotoeri, etc.) can process them normally — enabling hiragana input, kanji conversion, and live conversion.
 
 ## Features
 
@@ -22,15 +22,15 @@ Steam's on-screen keyboard injects key events by embedding Unicode characters di
 ## Build & Run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/SteamMacKana.git
-cd SteamMacKana
+git clone https://github.com/YOUR_USERNAME/SteamControllerMacKana.git
+cd SteamControllerMacKana
 swift build -c release
-.build/release/SteamMacKana
+.build/release/SteamControllerMacKana
 ```
 
 ## Usage
 
-1. Launch SteamMacKana — `EN` appears in the menu bar
+1. Launch SteamControllerMacKana — `EN` appears in the menu bar
 2. Open Steam and the Steam on-screen keyboard
 3. Press `` ` `` to switch to Japanese mode (`日`)
 4. Type romaji with the Steam keyboard → Kotoeri converts to hiragana/kanji
@@ -38,7 +38,7 @@ swift build -c release
 
 ## How It Works
 
-Steam injects keyboard events with `virtualKey = 0` and the Unicode character pre-set, which bypasses the macOS IME. SteamMacKana intercepts these events via `CGEventTap`, reads the Unicode character, maps it to the correct US keyboard virtual key code, and re-injects a clean event without the pre-set Unicode string. This allows Kotoeri to process the input through its normal pipeline.
+Steam injects keyboard events with `virtualKey = 0` and the Unicode character pre-set, which bypasses the macOS IME. SteamControllerMacKana intercepts these events via `CGEventTap`, reads the Unicode character, maps it to the correct US keyboard virtual key code, and re-injects a clean event without the pre-set Unicode string. This allows Kotoeri to process the input through its normal pipeline.
 
 ## License
 
