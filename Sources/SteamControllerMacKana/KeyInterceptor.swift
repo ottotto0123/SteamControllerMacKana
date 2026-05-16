@@ -1,24 +1,12 @@
 import AppKit
 import Carbon
 
-// CGEventTap でキーボード入力を監視する。
-//
-// ` キー: 常にIMEトグル（英語/日本語モード問わず）
-//
-// 日本語モード時の問題:
-//   Steam は CGEvent にUnicode文字列を直接埋め込んで注入するため、
-//   システムIMEを素通りして英字が入力されてしまう。
-//   対策: イベントのUnicode文字列を除去し、キーコードだけを持つ
-//   クリーンなイベントに差し替える。これによりKotoeri等のシステムIMEが
-//   正規のルートで処理でき、ライブ変換・かな漢字変換が有効になる。
-//
-// アクセシビリティ権限が必要。
-
 private let INJECT_MARKER: Int64 = 0x5354494D  // "STIM"
 
 final class KeyInterceptor {
     var isJapanese = false
     var onToggle: (() -> Void)?
+    var binding: KeyBinding = KeyBinding.load()
 
     private var tap: CFMachPort?
 
@@ -55,15 +43,15 @@ final class KeyInterceptor {
 
         let kc = event.getIntegerValueField(.keyboardEventKeycode)
 
-        // ` キー判定: 物理キーボード(kc=50) または Steam注入(virtualKey=0, unicode="`")
-        // Steam は常に virtualKey=0 で注入するため unicode でも判定する必要がある
-        var uLen2 = 0
-        var uBuf2 = [UniChar](repeating: 0, count: 4)
-        event.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &uLen2, unicodeString: &uBuf2)
-        let isBacktick = kc == 50 || (uLen2 == 1 && uBuf2[0] == 96)  // 96 = '`'
-        if isBacktick {
+        // Unicode文字を取得（SteamはvirtualKey=0固定でunicodeだけ変えて注入する）
+        var uLen = 0
+        var uBuf = [UniChar](repeating: 0, count: 4)
+        event.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &uLen, unicodeString: &uBuf)
+
+        // トグルキー判定
+        if isToggleKey(kc: UInt16(kc), eventFlags: event.flags, unicode: uLen == 1 ? uBuf[0] : nil) {
             DispatchQueue.main.async { self.onToggle?() }
-            return nil  // ` 自体は入力しない
+            return nil
         }
 
         // 英語モードはそのまま通す
@@ -75,29 +63,47 @@ final class KeyInterceptor {
             return Unmanaged.passRetained(event)
         }
 
-        // 物理キーボードのイベントはPID=0（カーネル/IOKit由来）。
-        // 正しいキーコードを持つためそのまま通す（システムIMEが自然に処理）。
+        // 物理キーボード(PID=0)はそのまま通す（正しいキーコードを持つ）
         let sourcePID = event.getIntegerValueField(.eventSourceUnixProcessID)
         if sourcePID == 0 { return Unmanaged.passRetained(event) }
 
-        // 日本語モード: SteamはvirtualKey=0固定でUnicode文字列だけ変えて注入する。
-        // そのままではIMEがすべて 'a' として受け取るため、
-        // Steamが設定したUnicode文字から正しいキーコードを逆引きして差し替える。
-        var uLen = 0
-        var uBuf = [UniChar](repeating: 0, count: 4)
-        event.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &uLen, unicodeString: &uBuf)
+        // Steam注入イベント: unicodeから正しいキーコードを逆引きしてクリーンなイベントに差し替え
         guard uLen == 1,
               let scalar = Unicode.Scalar(uBuf[0]),
               let correctKC = usKeycode(for: Character(scalar)),
               let evSrc = CGEventSource(stateID: .combinedSessionState),
-              let clean = CGEvent(keyboardEventSource: evSrc,
-                                  virtualKey: correctKC,
-                                  keyDown: true) else {
-            return Unmanaged.passRetained(event)
-        }
+              let clean = CGEvent(keyboardEventSource: evSrc, virtualKey: correctKC, keyDown: true)
+        else { return Unmanaged.passRetained(event) }
+
         clean.flags = flags
         clean.setIntegerValueField(.eventSourceUserData, value: INJECT_MARKER)
         return Unmanaged.passRetained(clean)
+    }
+
+    // MARK: - トグルキー判定
+
+    private func isToggleKey(kc: UInt16, eventFlags: CGEventFlags, unicode: UniChar?) -> Bool {
+        let b = binding
+        let requiredMods = b.modifierFlags
+
+        // 修飾キーマッチ確認
+        let allowed: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
+        let eventMods = NSEvent.ModifierFlags(rawValue: UInt(eventFlags.rawValue)).intersection(allowed)
+        guard eventMods == requiredMods else { return false }
+
+        // キーコード一致（物理KB）
+        if kc == b.keyCode { return true }
+
+        // Steamは virtualKey=0 のため、unicode で判定
+        if kc == 0, let u = unicode {
+            // unicodeからキーコードを逆引きして比較
+            if let scalar = Unicode.Scalar(u),
+               let mappedKC = usKeycode(for: Character(scalar)),
+               mappedKC == b.keyCode { return true }
+            // backtick(96) の特殊対応
+            if b.keyCode == 50 && u == 96 { return true }
+        }
+        return false
     }
 }
 

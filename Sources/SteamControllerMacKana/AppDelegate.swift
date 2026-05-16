@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let ime = IMEManager()
     private let hud = HUD()
     private let interceptor = KeyInterceptor()
+    private let prefs = PreferencesWindow()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         requestAccessibility()
@@ -13,6 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ime.onChanged = { [weak self] isJP in self?.refresh(isJP) }
         ime.startObserving()
         interceptor.onToggle = { [weak self] in self?.ime.toggle() }
+        prefs.onBindingChanged = { [weak self] binding in
+            self?.interceptor.binding = binding
+        }
         interceptor.start()
         refresh(ime.isJapanese)
     }
@@ -42,8 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleClick() {
         guard let event = NSApp.currentEvent else { return }
 
-        if event.type == .rightMouseUp ||
-           event.modifierFlags.contains(.control) {
+        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
             showMenu()
         } else {
             ime.toggle()
@@ -55,9 +58,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         addItem(m, "日本語に切り替え", #selector(switchJP))
         addItem(m, "英語に切り替え",   #selector(switchEN))
         m.addItem(.separator())
+        addItem(m, "設定...", #selector(openPrefs))
+        m.addItem(.separator())
         addItem(m, "終了", #selector(quit))
 
-        // menu を一時的にセットして表示後に外す
         statusItem.menu = m
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
@@ -68,15 +72,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.target = self
     }
 
-    @objc private func switchJP()  { ime.switchToJapanese() }
-    @objc private func switchEN()  { ime.switchToEnglish() }
-    @objc private func quit()      { NSApp.terminate(nil) }
+    @objc private func switchJP()   { ime.switchToJapanese() }
+    @objc private func switchEN()   { ime.switchToEnglish() }
+    @objc private func openPrefs()  { prefs.show() }
+    @objc private func quit()       { NSApp.terminate(nil) }
 
     // MARK: - Refresh
 
     private func refresh(_ isJP: Bool) {
         guard let btn = statusItem.button else { return }
-        // ダーク/ライト両対応: attributedTitle でシステム色ベースの色を指定
         let text = isJP ? "日" : "EN"
         let color: NSColor = isJP
             ? NSColor(name: nil) { appearance in
